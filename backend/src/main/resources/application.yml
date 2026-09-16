@@ -21,3 +21,10 @@ spring:
 
 server:
   port: 8080
+
+jwt:
+  secret: ${JWT_SECRET:ZeroTrustPlatformSecretKey2026ForJWT!}
+
+institution:
+  name: ${INSTITUTION_NAME:ABC College}
+  logo: ${INSTITUTION_LOGO:}
