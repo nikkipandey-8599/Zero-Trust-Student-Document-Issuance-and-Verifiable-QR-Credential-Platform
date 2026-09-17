@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900 min-h-screen;
+  }
+
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  button, input, textarea, select {
+    font-family: inherit;
+  }
+
+  :focus-visible {
+    outline: 2px solid #4f6df5;
+    outline-offset: 2px;
+  }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 99px; }
+}
+
+@layer utilities {
+  .spinning {
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+}
