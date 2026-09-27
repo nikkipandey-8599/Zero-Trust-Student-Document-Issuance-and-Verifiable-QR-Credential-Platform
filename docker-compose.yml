@@ -1,0 +1,60 @@
+services:
+
+  postgres:
+    image: postgres:18
+    container_name: verifyid-postgres
+
+    environment:
+      POSTGRES_DB: verifyid_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d verifyid_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  backend:
+    build:
+      context: ./backend
+
+    container_name: verifyid-backend
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/verifyid_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      JWT_SECRET: verifyid-docker-development-secret-2026
+      JWT_EXPIRATION: 86400000
+
+    ports:
+      - "8080:8080"
+
+
+  frontend:
+    build:
+      context: ./frontend
+
+    container_name: verifyid-frontend
+
+    depends_on:
+      - backend
+
+    ports:
+      - "5173:80"
+
+
+volumes:
+  postgres_data:

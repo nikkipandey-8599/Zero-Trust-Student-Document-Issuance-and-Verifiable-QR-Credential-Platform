@@ -1,0 +1,6 @@
+target/
+keys/
+*.log
+startup-error.txt
+.git/
+.gitignore
