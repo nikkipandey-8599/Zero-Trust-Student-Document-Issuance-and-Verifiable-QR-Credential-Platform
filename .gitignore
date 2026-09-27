@@ -47,3 +47,6 @@ coverage/
 
 # Database
 *.db
+
+# Local backend error/debug files
+backend/startup-error.txt
