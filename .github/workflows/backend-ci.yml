@@ -50,5 +50,5 @@ jobs:
           DB_URL: jdbc:postgresql://localhost:5432/verifyid_db
           DB_USERNAME: postgres
           DB_PASSWORD: postgres
-          JWT_SECRET: verifyid-ci-development-secret
+          JWT_SECRET: verifyid-ci-development-secret-2026-strong
         run: ./mvnw test
