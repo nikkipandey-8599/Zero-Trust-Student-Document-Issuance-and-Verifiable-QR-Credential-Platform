@@ -40,13 +40,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        String authHeader =
-                request.getHeader("Authorization");
+        String authHeader = request.getHeader("Authorization");
 
         String token = null;
         String email = null;
 
-        // Check Authorization header
         if (authHeader != null &&
                 authHeader.startsWith("Bearer ")) {
 
@@ -55,12 +53,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 email = jwtService.extractEmail(token);
             } catch (Exception e) {
-                // Invalid JWT
+                // Invalid JWT. Continue without authentication.
             }
         }
 
-        // Continue only if we have a token and
-        // there is no existing authentication
         if (email != null &&
                 SecurityContextHolder
                         .getContext()
@@ -68,10 +64,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             try {
 
-                User user =
-                        userRepository
-                                .findByEmail(email)
-                                .orElse(null);
+                User user = userRepository
+                        .findByEmail(email)
+                        .orElse(null);
 
                 if (user != null &&
                         token != null &&
@@ -82,9 +77,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     List<GrantedAuthority> authorities =
                             List.of(
-                                    new SimpleGrantedAuthority(
-                                            "ROLE_" + role
-                                    )
+                                new SimpleGrantedAuthority(
+                                    "ROLE_" + role
+                                )
                             );
 
                     UsernamePasswordAuthenticationToken authentication =

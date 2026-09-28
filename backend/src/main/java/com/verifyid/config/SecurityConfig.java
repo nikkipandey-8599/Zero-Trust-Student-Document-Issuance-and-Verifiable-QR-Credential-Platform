@@ -1,21 +1,20 @@
 package com.verifyid.config;
 
 import com.verifyid.security.JwtAuthenticationFilter;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
-
 
 @Configuration
 @EnableWebSecurity
@@ -28,83 +27,114 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http
+    ) throws Exception {
 
         http
-                .csrf(csrf -> csrf.disable())
+            .csrf(csrf -> csrf.disable())
 
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .cors(cors ->
+                cors.configurationSource(corsConfigurationSource())
+            )
 
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            .sessionManagement(session ->
+                session.sessionCreationPolicy(
+                    SessionCreationPolicy.STATELESS
+                )
+            )
+
+            .authorizeHttpRequests(auth -> auth
+
+                // Public endpoints
+                .requestMatchers(
+                    "/api/health",
+                    "/api/auth/**",
+                    "/api/verify/**",
+                    "/api/qr/**",
+                    "/api/documents/types",
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**"
+                ).permitAll()
+
+                // Staff-only operations
+                .requestMatchers(
+                    "/api/staff/**"
+                ).hasAnyAuthority(
+                    "ROLE_STAFF",
+                    "ROLE_ADMIN"
                 )
 
-                .authorizeHttpRequests(auth -> auth
-                       .requestMatchers(
-        "/api/health",
-        "/api/auth/**",
-        "/api/verify/**",
-        "/api/qr/**",
-        "/api/documents/types",
-        "/swagger-ui/**",
-        "/v3/api-docs/**"
-).permitAll()
+                // Admin-only operations
+                .requestMatchers(
+                    "/api/admin/**"
+                ).hasAuthority("ROLE_ADMIN")
 
-                        .requestMatchers("/api/admin/**")
-                        .hasRole("ADMIN")
+                // Student-only operations
+                .requestMatchers(
+                    "/api/student/**",
+                    "/api/requests/student/**"
+                ).hasAuthority("ROLE_STUDENT")
 
-                        .requestMatchers("/api/staff/**")
-                        .hasAnyRole("STAFF", "ADMIN")
-
-                        .requestMatchers("/api/student/**")
-                        .hasRole("STUDENT")
-
-                        .requestMatchers("/api/requests/student/**")
-.hasRole("STUDENT")
-
-.requestMatchers("/api/requests/pending")
-.hasAnyRole("STAFF", "ADMIN")
-
-                        .anyRequest()
-                        .authenticated()
+                // Staff/admin pending-request endpoint
+                .requestMatchers(
+                    "/api/requests/pending"
+                ).hasAnyAuthority(
+                    "ROLE_STAFF",
+                    "ROLE_ADMIN"
                 )
 
-                .addFilterBefore(
-                        jwtAuthenticationFilter,
-                        UsernamePasswordAuthenticationFilter.class
-                );
+                // Everything else requires authentication
+                .anyRequest().authenticated()
+            )
+
+            .addFilterBefore(
+                jwtAuthenticationFilter,
+                UsernamePasswordAuthenticationFilter.class
+            );
 
         return http.build();
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+    public org.springframework.security.crypto.password.PasswordEncoder passwordEncoder() {
+        return new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
-        CorsConfiguration configuration = new CorsConfiguration();
+        CorsConfiguration configuration =
+            new CorsConfiguration();
 
         configuration.setAllowedOrigins(
-                List.of("http://localhost:5173")
+            List.of("http://localhost:5173")
         );
 
         configuration.setAllowedMethods(
-                List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+            List.of(
+                "GET",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE",
+                "OPTIONS"
+            )
         );
 
         configuration.setAllowedHeaders(
-                List.of("*")
+            List.of("*")
         );
 
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
+            new UrlBasedCorsConfigurationSource();
 
-        source.registerCorsConfiguration("/**", configuration);
+        source.registerCorsConfiguration(
+            "/**",
+            configuration
+        );
 
         return source;
     }
