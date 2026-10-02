@@ -1,56 +1,76 @@
-# VerifyID Evaluation Dossier
+# VerifyID — Evaluation Dossier
 
-## 1. Problem validation
+## 1. Project Information
 
-The project addresses student document requests that can otherwise involve manual communication, uncertain status, delivery handling and manual verification.
+**Project:** VerifyID — Zero-Trust Student Document Issuance and Verifiable QR Credential Platform
 
-## 2. Integrated MVP
+**Project Type:** Web-based security-focused document issuance and verification prototype
 
-The demonstrated workflow is:
+**Development Branch:** `development`
 
-Student login -> document request -> staff review -> approval/rejection -> credential issuance -> QR/public verification -> PDF download -> revocation.
+**Primary Technologies:**
 
-## 3. Security evidence
+- React
+- Vite
+- Tailwind CSS
+- Java 21
+- Spring Boot
+- Spring Security
+- JWT
+- PostgreSQL
+- RSA cryptography
+- SHA-256
+- GitHub Actions
+- Docker configuration
 
-Evidence includes JWT authentication, role-based authorization, student ownership checks, RSA signing, SHA-256 hashing, credential revocation and audit events.
+---
 
-## 4. Engineering evidence
+# 2. Problem Statement
 
-The repository includes:
+Student documents such as bonafide certificates, transcripts and migration certificates can involve manual requests, administrative review and physical or email-based delivery.
 
-- Separate frontend and backend
-- PostgreSQL persistence
-- Maven backend tests
-- GitHub Actions CI
-- Dockerfiles and Docker Compose configuration
-- Environment-based secrets
-- Git development branch
-- Reproducible database schema/seed references
-- Architecture, security, testing and API documentation
+This can create problems involving:
 
-## 5. Baseline comparison
+- Request status visibility
+- Processing delays
+- Manual verification
+- Document authenticity
+- Unauthorized access
+- Limited auditability
 
-The comparison in `docs/evaluation/baseline-comparison.md` contrasts the integrated prototype with a conventional manual request and verification workflow.
+VerifyID provides a digital workflow for requesting, approving, issuing and verifying student credentials.
 
-## 6. Measured evaluation
+---
 
-The final report should record measurements from repeatable runs for:
+# 3. Proposed Solution
 
-- request completion time
-- staff processing time
-- verification response time
-- authorization-test outcomes
-- credential verification success
-- revocation detection
-- audit event coverage
-- automated test/build results
+VerifyID provides a centralized workflow:
 
-No unmeasured performance claim should be presented as an experimental result.
-
-## 7. Limitations
-
-The current implementation is an academic prototype. Production deployment would require stronger identity infrastructure, secure key storage, TLS, centralized monitoring, formal institutional integration and additional security testing.
-
-## 8. Demonstration evidence
-
-Screenshots captured during development cover the major end-to-end stages, including request management, credential issuance, QR/public verification and the staff dashboard.
+```text
+Student
+   |
+   v
+Document Request
+   |
+   v
+Staff Review
+   |
+   +----------+
+   |          |
+ Approve    Reject
+   |
+   v
+Credential Issuance
+   |
+   +----------+
+   |          |
+   v          v
+  PDF        QR
+   |          |
+   +-----+----+
+         |
+         v
+Credential Verification
+         |
+         v
+Credential Status
