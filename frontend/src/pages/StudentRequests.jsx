@@ -1,27 +1,67 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  Clock3,
   FileText,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Send,
   Loader2,
+  Send,
+  XCircle,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import Navbar from "../components/Navbar";
 
-const statusStyles = {
-  SUBMITTED: "bg-blue-50 text-blue-700 border-blue-200",
-  UNDER_REVIEW: "bg-yellow-50 text-yellow-700 border-yellow-200",
-  APPROVED: "bg-green-50 text-green-700 border-green-200",
-  REJECTED: "bg-red-50 text-red-700 border-red-200",
-  ISSUED: "bg-purple-50 text-purple-700 border-purple-200",
+const statusConfig = {
+  SUBMITTED: {
+    label: "Submitted",
+    className: "bg-blue-50 text-blue-700 border-blue-200",
+    icon: <Send size={14} />,
+  },
+
+  UNDER_REVIEW: {
+    label: "Under Review",
+    className: "bg-amber-50 text-amber-700 border-amber-200",
+    icon: <Clock3 size={14} />,
+  },
+
+  APPROVED: {
+    label: "Approved",
+    className: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    icon: <CheckCircle2 size={14} />,
+  },
+
+  REJECTED: {
+    label: "Rejected",
+    className: "bg-red-50 text-red-700 border-red-200",
+    icon: <XCircle size={14} />,
+  },
+
+  DOCUMENT_GENERATED: {
+    label: "Document Ready",
+    className: "bg-purple-50 text-purple-700 border-purple-200",
+    icon: <CheckCircle2 size={14} />,
+  },
+
+  ISSUED: {
+    label: "Issued",
+    className: "bg-purple-50 text-purple-700 border-purple-200",
+    icon: <CheckCircle2 size={14} />,
+  },
+
+  REVOKED: {
+    label: "Revoked",
+    className: "bg-slate-100 text-slate-700 border-slate-300",
+    icon: <XCircle size={14} />,
+  },
 };
 
 export default function StudentRequests() {
   const { user } = useAuth();
+
+  const studentId = user?.id ?? user?.userId;
 
   const [documentTypes, setDocumentTypes] = useState([]);
   const [requests, setRequests] = useState([]);
@@ -31,77 +71,80 @@ export default function StudentRequests() {
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const studentId = user?.id ?? user?.userId;
+  const sortedRequests = useMemo(() => {
+    return [...requests].sort((a, b) => {
+      const dateA = new Date(
+        a.createdAt || a.updatedAt || 0
+      ).getTime();
 
-const loadData = async () => {
-  try {
-    setLoading(true);
-    setError("");
+      const dateB = new Date(
+        b.createdAt || b.updatedAt || 0
+      ).getTime();
 
-    // Document types are public, so load them independently.
-    const typesResponse = await api.get("/documents/types");
+      return dateB - dateA;
+    });
+  }, [requests]);
 
-    console.log("DOCUMENT TYPES:", typesResponse.data);
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-    setDocumentTypes(
-      Array.isArray(typesResponse.data)
-        ? typesResponse.data
-        : []
-    );
+      const typesResponse = await api.get("/documents/types");
 
-    // Student request history needs the student ID.
-    if (studentId) {
-      try {
-        const requestsResponse = await api.get(
-          `/requests/student/${studentId}`
-        );
+      setDocumentTypes(
+        Array.isArray(typesResponse.data)
+          ? typesResponse.data
+          : []
+      );
 
-        console.log("MY REQUESTS:", requestsResponse.data);
-
-        setRequests(
-          Array.isArray(requestsResponse.data)
-            ? requestsResponse.data
-            : []
-        );
-      } catch (requestError) {
-        console.error(
-          "REQUESTS API ERROR:",
-          requestError
-        );
-
+      if (!studentId) {
         setRequests([]);
+        return;
       }
-    } else {
-      console.warn("Student ID not found in logged-in user:", user);
-      setRequests([]);
+
+      const requestsResponse = await api.get(
+        `/requests/student/${studentId}`
+      );
+
+      setRequests(
+        Array.isArray(requestsResponse.data)
+          ? requestsResponse.data
+          : []
+      );
+    } catch (err) {
+      console.error("Failed to load student requests:", err);
+
+      setError(
+        err?.response?.data?.message ||
+          "Unable to load your requests. Please try again."
+      );
+    } finally {
+      setLoading(false);
     }
+  };
 
-  } catch (err) {
-    console.error("DOCUMENT TYPES ERROR:", err);
+  useEffect(() => {
+    loadData();
+  }, [studentId]);
 
-    setError(
-      "Unable to load document services. Make sure the backend is running."
-    );
-  } finally {
-    setLoading(false);
-  }
-};
-
-useEffect(() => {
-  loadData();
-}, [studentId]);
-
-  const submitRequest = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
     setError("");
     setSuccess("");
 
-    if (!documentTypeId || !purpose.trim()) {
-      setError("Please select a document and enter the purpose.");
+    if (!documentTypeId) {
+      setError("Please select a document type.");
+      return;
+    }
+
+    if (!purpose.trim()) {
+      setError("Please enter the purpose of your request.");
       return;
     }
 
@@ -113,248 +156,463 @@ useEffect(() => {
         purpose: purpose.trim(),
       });
 
-      setSuccess("Document request submitted successfully.");
       setDocumentTypeId("");
       setPurpose("");
 
+      setSuccess(
+        "Your document request has been submitted successfully."
+      );
+
       await loadData();
     } catch (err) {
-      console.error(err);
+      console.error("Failed to submit request:", err);
 
       setError(
         err?.response?.data?.message ||
-          "Unable to submit the request. Please try again."
+          "Unable to submit your request. Please try again."
       );
     } finally {
       setSubmitting(false);
     }
   };
 
-  const getStatusIcon = (status) => {
-    if (status === "APPROVED" || status === "ISSUED") {
-      return <CheckCircle size={18} />;
-    }
-
-    if (status === "REJECTED") {
-      return <XCircle size={18} />;
-    }
-
-    return <Clock size={18} />;
-  };
-
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-6xl px-5 py-8">
+    <div className="min-h-screen bg-[#F8F5EF]">
+      <Navbar />
 
+      <main className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
+
+        {/* Back */}
         <Link
           to="/student"
-          className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-indigo-600"
+          className="inline-flex items-center gap-2 rounded-lg text-sm font-bold text-[#65566F] transition hover:text-[#493A54] focus:outline-none focus:ring-2 focus:ring-[#8E7AA8] focus:ring-offset-2"
         >
-          <ArrowLeft size={18} />
-          Back to Student Portal
+          <ArrowLeft size={16} />
+          Back to dashboard
         </Link>
 
-        <div className="mb-8">
-          <p className="text-sm font-semibold text-indigo-600">
-            Document Services
+        {/* Page Header */}
+        <section className="mt-5">
+
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#7A668E]">
+            Student services
           </p>
 
-          <h1 className="mt-1 text-3xl font-bold text-slate-900">
-            Request a Document
+          <h1 className="mt-1 text-3xl font-bold tracking-tight text-[#292632] sm:text-4xl">
+            Document requests
           </h1>
 
-          <p className="mt-2 text-slate-500">
-            Submit an official academic document request and track its status.
+          <p className="mt-2 max-w-2xl text-base leading-6 text-[#5F5964]">
+            Request an official academic document and track its progress
+            through the VerifyID workflow.
           </p>
-        </div>
 
+        </section>
+
+        {/* Alerts */}
         {error && (
-          <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
             {success}
           </div>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-[420px_1fr]">
+        {/* Request Form */}
+        <section className="mt-7 rounded-[22px] border border-[#E0D8E4] bg-white p-6 shadow-sm sm:p-7">
 
-          {/* Request Form */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="rounded-xl bg-indigo-50 p-3 text-indigo-600">
-                <FileText size={22} />
-              </div>
+          <div className="flex items-start gap-4">
 
-              <div>
-                <h2 className="font-bold text-slate-900">
-                  New Request
-                </h2>
-                <p className="text-sm text-slate-500">
-                  Choose your document
-                </p>
-              </div>
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#EEE9F3] text-[#735F87]">
+              <FileText size={23} />
             </div>
 
-            <form onSubmit={submitRequest} className="space-y-5">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#7A668E]">
+                New request
+              </p>
 
+              <h2 className="mt-1 text-2xl font-bold text-[#292632]">
+                Request an official document
+              </h2>
+
+              <p className="mt-1 text-sm leading-5 text-[#5F5964]">
+                Select the document you need and tell the institution why you
+                require it.
+              </p>
+            </div>
+
+          </div>
+
+          <form
+            onSubmit={handleSubmit}
+            className="mt-7"
+          >
+
+            <div className="grid gap-6 lg:grid-cols-2">
+
+              {/* Document type */}
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Document Type
+
+                <label
+                  htmlFor="documentType"
+                  className="block text-sm font-bold text-[#292632]"
+                >
+                  Document type
                 </label>
 
                 <select
+                  id="documentType"
                   value={documentTypeId}
-                  onChange={(e) => setDocumentTypeId(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  onChange={(event) =>
+                    setDocumentTypeId(event.target.value)
+                  }
+                  disabled={loading || submitting}
+                  className="mt-2 h-12 w-full rounded-xl border border-[#CEC4D5] bg-white px-4 text-sm font-medium text-[#292632] shadow-sm transition focus:border-[#8E7AA8] focus:outline-none focus:ring-2 focus:ring-[#8E7AA8]/20 disabled:cursor-not-allowed disabled:bg-[#F5F2F6]"
                 >
-                  <option value="">Select document</option>
+                  <option value="">
+                    Select a document
+                  </option>
 
                   {documentTypes.map((type) => (
-                    <option key={type.id} value={type.id}>
+                    <option
+                      key={type.id}
+                      value={type.id}
+                    >
                       {type.name}
                     </option>
                   ))}
                 </select>
+
+                <p className="mt-2 text-xs text-[#5F5964]">
+                  Choose the official document you need.
+                </p>
+
               </div>
 
+              {/* Purpose */}
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
+
+                <label
+                  htmlFor="purpose"
+                  className="block text-sm font-bold text-[#292632]"
+                >
                   Purpose
                 </label>
 
-                <textarea
+                <input
+                  id="purpose"
+                  type="text"
                   value={purpose}
-                  onChange={(e) => setPurpose(e.target.value)}
-                  rows={5}
-                  placeholder="Example: Required for internship verification..."
-                  className="w-full resize-none rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  onChange={(event) =>
+                    setPurpose(event.target.value)
+                  }
+                  disabled={submitting}
+                  placeholder="Example: Internship application"
+                  className="mt-2 h-12 w-full rounded-xl border border-[#CEC4D5] bg-white px-4 text-sm font-medium text-[#292632] shadow-sm placeholder:text-[#817A85] focus:border-[#8E7AA8] focus:outline-none focus:ring-2 focus:ring-[#8E7AA8]/20 disabled:cursor-not-allowed disabled:bg-[#F5F2F6]"
                 />
-              </div>
 
-              <div className="rounded-xl bg-slate-50 p-4">
-                <p className="text-sm font-semibold text-slate-700">
-                  Eligibility checklist
+                <p className="mt-2 text-xs text-[#5F5964]">
+                  Briefly explain why you need this document.
                 </p>
 
-                <div className="mt-3 space-y-2 text-sm text-slate-500">
-                  <p>✓ Student account verified</p>
-                  <p>✓ Official academic record available</p>
-                  <p>✓ Request will be reviewed by staff</p>
-                </div>
               </div>
+
+            </div>
+
+            <div className="mt-6 flex justify-end">
 
               <button
                 type="submit"
-                disabled={submitting}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={submitting || loading || !studentId}
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#8E7AA8] px-5 text-sm font-bold text-white shadow-sm transition hover:bg-[#796591] focus:outline-none focus:ring-2 focus:ring-[#8E7AA8] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting ? (
                   <>
-                    <Loader2 size={18} className="animate-spin" />
+                    <Loader2
+                      size={17}
+                      className="animate-spin"
+                    />
                     Submitting...
                   </>
                 ) : (
                   <>
-                    <Send size={18} />
-                    Submit Request
+                    Submit request
+                    <ArrowRight size={17} />
                   </>
                 )}
               </button>
-            </form>
-          </div>
 
-          {/* Requests */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-slate-900">
-                My Requests
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Track your submitted document requests.
-              </p>
             </div>
 
+          </form>
+
+        </section>
+
+        {/* Request History */}
+        <section className="mt-9">
+
+          <div className="mb-4">
+
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#7A668E]">
+              Request history
+            </p>
+
+            <h2 className="mt-1 text-2xl font-bold text-[#292632]">
+              Your requests
+            </h2>
+
+            <p className="mt-1 text-sm text-[#5F5964]">
+              Track the current status of your submitted documents.
+            </p>
+
+          </div>
+
+          <div className="overflow-hidden rounded-[22px] border border-[#E0D8E4] bg-white shadow-sm">
+
             {loading ? (
-              <div className="flex justify-center py-12">
+              <div className="flex items-center justify-center gap-2 px-6 py-14 text-sm font-medium text-[#5F5964]">
                 <Loader2
-                  size={28}
-                  className="animate-spin text-indigo-600"
+                  size={18}
+                  className="animate-spin"
                 />
+                Loading your requests...
               </div>
-            ) : requests.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-slate-300 py-12 text-center">
-                <FileText
-                  className="mx-auto mb-3 text-slate-400"
-                  size={36}
-                />
-
-                <p className="font-semibold text-slate-700">
-                  No requests yet
-                </p>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  Submit your first document request.
-                </p>
-              </div>
+            ) : sortedRequests.length === 0 ? (
+              <EmptyState />
             ) : (
-              <div className="space-y-4">
-                {requests.map((request) => (
-                  <div
-                    key={request.id}
-                    className="rounded-xl border border-slate-200 p-5 transition hover:border-indigo-200"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-4">
+              <>
+                {/* Desktop */}
+                <div className="hidden overflow-x-auto md:block">
 
-                      <div>
-                        <p className="font-bold text-slate-900">
-                          {request.documentType?.name || "Academic Document"}
-                        </p>
+                  <table className="w-full min-w-[760px]">
 
-                        <p className="mt-1 text-sm text-slate-500">
-                          Request #{request.id}
-                        </p>
-                      </div>
+                    <thead className="border-b border-[#E5DEE8] bg-[#FBF9FC]">
 
-                      <span
-                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
-                          statusStyles[request.status] ||
-                          "bg-slate-50 text-slate-600 border-slate-200"
-                        }`}
-                      >
-                        {getStatusIcon(request.status)}
-                        {request.status}
-                      </span>
-                    </div>
+                      <tr>
 
-                    <div className="mt-4 rounded-lg bg-slate-50 p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                        Purpose
-                      </p>
+                        <th className="px-6 py-4 text-left text-sm font-bold text-[#4C4552]">
+                          Document
+                        </th>
 
-                      <p className="mt-1 text-sm text-slate-700">
-                        {request.purpose}
-                      </p>
-                    </div>
+                        <th className="px-6 py-4 text-left text-sm font-bold text-[#4C4552]">
+                          Purpose
+                        </th>
 
-                    {request.rejectionReason && (
-                      <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">
-                        <strong>Rejection reason:</strong>{" "}
-                        {request.rejectionReason}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                        <th className="px-6 py-4 text-left text-sm font-bold text-[#4C4552]">
+                          Date requested
+                        </th>
+
+                        <th className="px-6 py-4 text-left text-sm font-bold text-[#4C4552]">
+                          Status
+                        </th>
+
+                      </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                      {sortedRequests.map((request) => (
+                        <RequestRow
+                          key={request.id}
+                          request={request}
+                        />
+                      ))}
+
+                    </tbody>
+
+                  </table>
+
+                </div>
+
+                {/* Mobile */}
+                <div className="divide-y divide-[#E5DEE8] md:hidden">
+
+                  {sortedRequests.map((request) => (
+                    <RequestMobileCard
+                      key={request.id}
+                      request={request}
+                    />
+                  ))}
+
+                </div>
+              </>
             )}
+
+          </div>
+
+        </section>
+
+      </main>
+    </div>
+  );
+}
+
+function RequestRow({ request }) {
+  const status = getStatus(request.status);
+
+  return (
+    <tr className="border-b border-[#EAE4ED] last:border-0">
+
+      <td className="px-6 py-5">
+
+        <div className="flex items-center gap-3">
+
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F0EBF4] text-[#735F87]">
+            <FileText size={18} />
+          </div>
+
+          <span className="text-base font-bold text-[#292632]">
+            {getDocumentName(request)}
+          </span>
+
+        </div>
+
+      </td>
+
+      <td className="max-w-[260px] px-6 py-5 text-sm font-medium text-[#5F5964]">
+        <span className="line-clamp-2">
+          {request.purpose || "—"}
+        </span>
+      </td>
+
+      <td className="px-6 py-5 text-sm font-medium text-[#5F5964]">
+        {formatDate(
+          request.createdAt ||
+            request.updatedAt
+        )}
+      </td>
+
+      <td className="px-6 py-5">
+        <StatusBadge status={request.status} />
+      </td>
+
+    </tr>
+  );
+}
+
+function RequestMobileCard({ request }) {
+  return (
+    <div className="p-5">
+
+      <div className="flex items-start justify-between gap-4">
+
+        <div className="flex min-w-0 items-center gap-3">
+
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F0EBF4] text-[#735F87]">
+            <FileText size={18} />
+          </div>
+
+          <div className="min-w-0">
+
+            <h3 className="truncate text-base font-bold text-[#292632]">
+              {getDocumentName(request)}
+            </h3>
+
+            <p className="mt-1 text-xs font-medium text-[#5F5964]">
+              {formatDate(
+                request.createdAt ||
+                  request.updatedAt
+              )}
+            </p>
+
           </div>
 
         </div>
+
+        <StatusBadge status={request.status} />
+
       </div>
+
+      <div className="mt-4 rounded-xl bg-[#FAF8FB] p-3">
+
+        <p className="text-xs font-bold uppercase tracking-wide text-[#7A668E]">
+          Purpose
+        </p>
+
+        <p className="mt-1 text-sm leading-5 text-[#4F4755]">
+          {request.purpose || "No purpose provided"}
+        </p>
+
+      </div>
+
     </div>
   );
+}
+
+function StatusBadge({ status }) {
+  const config = getStatus(status);
+
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold ${config.className}`}
+    >
+      {config.icon}
+      {config.label}
+    </span>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="px-6 py-14 text-center">
+
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EEE9F3] text-[#735F87]">
+        <FileText size={25} />
+      </div>
+
+      <h3 className="mt-5 text-xl font-bold text-[#292632]">
+        No requests yet
+      </h3>
+
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#5F5964]">
+        Submit your first document request using the form above. Your request
+        status will appear here once submitted.
+      </p>
+
+    </div>
+  );
+}
+
+function getDocumentName(request) {
+  return (
+    request?.documentType?.name ||
+    request?.documentTypeName ||
+    request?.documentName ||
+    "Official document"
+  );
+}
+
+function getStatus(status) {
+  return (
+    statusConfig[status] || {
+      label: status || "Unknown",
+      className:
+        "bg-slate-100 text-slate-700 border-slate-300",
+      icon: <Clock3 size={14} />,
+    }
+  );
+}
+
+function formatDate(value) {
+  if (!value) {
+    return "—";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }

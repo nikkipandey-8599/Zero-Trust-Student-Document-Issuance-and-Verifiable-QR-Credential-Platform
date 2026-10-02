@@ -1,67 +1,115 @@
-import { ShieldCheck, LogOut, User } from "lucide-react";
+import { LogOut, UserRound } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
+  const isStaff =
+    user?.role === "STAFF" ||
+    user?.role === "ADMIN";
+
+  const dashboardPath = isStaff
+    ? "/staff"
+    : "/student";
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+    <header className="border-b border-[#DDD5DF] bg-[#F8F5EF]">
 
-        <button
-          onClick={() => navigate("/")}
-          className="flex items-center gap-2"
+      <div className="mx-auto flex h-[68px] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+
+        {/* Logo */}
+        <Link
+          to={dashboardPath}
+          className="group flex items-center gap-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8E7AA8] focus:ring-offset-2"
+          aria-label="Go to VerifyID dashboard"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white">
-            <ShieldCheck size={22} />
+
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#8E7AA8] shadow-sm transition group-hover:bg-[#796591]">
+
+            <svg
+              width="23"
+              height="23"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <path
+                d="M12 3.2L19 6.1V11.2C19 15.9 16.1 19.2 12 21C7.9 19.2 5 15.9 5 11.2V6.1L12 3.2Z"
+                stroke="white"
+                strokeWidth="1.7"
+                strokeLinejoin="round"
+              />
+
+              <path
+                d="M8.7 12.1L10.8 14.2L15.4 9.7"
+                stroke="white"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+
           </div>
 
-          <div>
-            <div className="text-lg font-bold text-slate-900">
+          <div className="leading-none">
+
+            <p className="font-heading text-[20px] font-bold tracking-tight text-[#292632]">
               VerifyID
-            </div>
+            </p>
 
-            <div className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
+            <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.15em] text-[#735F87]">
               Trusted Credentials
-            </div>
+            </p>
+
           </div>
-        </button>
 
+        </Link>
+
+        {/* User section */}
         {user && (
-          <div className="flex items-center gap-4">
-            <div className="hidden items-center gap-2 sm:flex">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
-                <User size={18} />
+          <div className="flex items-center gap-3 sm:gap-5">
+
+            <div className="hidden items-center gap-3 sm:flex">
+
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#EEE9F3] text-[#735F87]">
+                <UserRound size={17} />
               </div>
 
-              <div>
-                <p className="text-sm font-semibold text-slate-800">
-                  {user.fullName}
+              <div className="leading-tight">
+
+                <p className="max-w-[190px] truncate text-sm font-bold text-[#292632]">
+                  {user?.fullName || user?.email || "User"}
                 </p>
 
-                <p className="text-xs text-slate-500">
-                  {user.role}
+                <p className="mt-0.5 text-[11px] font-bold uppercase tracking-wide text-[#735F87]">
+                  {user?.role || "USER"}
                 </p>
+
               </div>
+
+            </div>
+
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#EEE9F3] text-[#735F87] sm:hidden">
+              <UserRound size={17} />
             </div>
 
             <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+              onClick={logout}
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-[#D5CBDD] bg-white px-3.5 text-sm font-bold text-[#4F4558] shadow-sm transition hover:bg-[#F0EBF4] focus:outline-none focus:ring-2 focus:ring-[#8E7AA8] focus:ring-offset-2"
             >
               <LogOut size={16} />
-              Logout
+              <span className="hidden sm:inline">
+                Logout
+              </span>
             </button>
+
           </div>
         )}
+
       </div>
+
     </header>
   );
 }
