@@ -5,28 +5,27 @@ import {
   ShieldCheck,
   ArrowRight,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
 
 export default function StudentDashboard() {
   const { user } = useAuth();
-  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-slate-50">
-
       <Navbar />
 
       <main className="mx-auto max-w-7xl px-6 py-10">
 
+        {/* Header */}
         <div className="mb-10">
           <p className="text-sm font-medium text-indigo-600">
             Student Portal
           </p>
 
           <h1 className="mt-1 text-3xl font-bold text-slate-900">
-            Welcome back, {user?.fullName}
+            Welcome back, {user?.fullName || "Student"}
           </h1>
 
           <p className="mt-2 text-slate-500">
@@ -34,6 +33,7 @@ export default function StudentDashboard() {
           </p>
         </div>
 
+        {/* Overview */}
         <div className="grid gap-5 md:grid-cols-3">
 
           <StatCard
@@ -46,21 +46,23 @@ export default function StudentDashboard() {
           <StatCard
             icon={<Clock />}
             title="Requests"
-            value="1"
-            subtitle="Currently submitted"
+            value="Track"
+            subtitle="View your document requests"
           />
 
           <StatCard
             icon={<CheckCircle2 />}
             title="Credentials"
-            value="1"
-            subtitle="Verified credential"
+            value="Verify"
+            subtitle="Verify issued credentials"
           />
 
         </div>
 
+        {/* Actions */}
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
 
+          {/* Request Document */}
           <div className="rounded-2xl border border-slate-200 bg-white p-7">
 
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
@@ -76,16 +78,17 @@ export default function StudentDashboard() {
               certificates and other official documents.
             </p>
 
-            <button
-              onClick={() => navigate("/student/requests/new")}
-              className="mt-6 flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700"
+            <Link
+              to="/student/requests/new"
+              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
             >
               Start request
               <ArrowRight size={17} />
-            </button>
+            </Link>
 
           </div>
 
+          {/* Verify Credential */}
           <div className="rounded-2xl border border-slate-200 bg-slate-950 p-7 text-white">
 
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 text-indigo-300">
@@ -101,12 +104,13 @@ export default function StudentDashboard() {
               unique credential ID.
             </p>
 
-            <button
-              onClick={() => navigate("/verify")}
-              className="mt-6 rounded-xl border border-white/20 px-5 py-3 text-sm font-semibold hover:bg-white/10"
+            <Link
+              to="/verify"
+              className="mt-6 inline-flex items-center gap-2 rounded-xl border border-white/20 px-5 py-3 text-sm font-semibold transition hover:bg-white/10"
             >
               Open verification
-            </button>
+              <ArrowRight size={17} />
+            </Link>
 
           </div>
 
@@ -127,7 +131,7 @@ function StatCard({ icon, title, value, subtitle }) {
           {icon}
         </div>
 
-        <span className="text-3xl font-bold text-slate-900">
+        <span className="text-2xl font-bold text-slate-900">
           {value}
         </span>
 

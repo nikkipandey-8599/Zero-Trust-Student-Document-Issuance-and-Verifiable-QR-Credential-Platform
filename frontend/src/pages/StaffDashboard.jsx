@@ -7,7 +7,9 @@ import {
   XCircle,
   History,
   RefreshCw,
+  ArrowRight,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
 import api from "../services/api";
@@ -20,7 +22,7 @@ export default function StaffDashboard() {
     issued: 0,
     credentials: 0,
     auditEvents: 0,
-    system: "..."
+    system: "...",
   });
 
   const [logs, setLogs] = useState([]);
@@ -35,8 +37,10 @@ export default function StaffDashboard() {
         api.get("/staff/dashboard/audit-logs"),
       ]);
 
-      setStats(statsResponse.data);
-      setLogs(logsResponse.data);
+      setStats(statsResponse.data || {});
+      setLogs(
+        Array.isArray(logsResponse.data) ? logsResponse.data : []
+      );
     } catch (error) {
       console.error("Dashboard loading failed:", error);
     } finally {
@@ -55,7 +59,7 @@ export default function StaffDashboard() {
       <main className="mx-auto max-w-7xl px-6 py-10">
 
         {/* Header */}
-        <div className="mb-10 flex items-start justify-between gap-4">
+        <div className="mb-10 flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
           <div>
             <p className="text-sm font-medium text-indigo-600">
               Staff Portal
@@ -72,91 +76,118 @@ export default function StaffDashboard() {
 
           <button
             onClick={loadDashboard}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            disabled={loading}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <RefreshCw size={16} />
+            <RefreshCw
+              size={16}
+              className={loading ? "animate-spin" : ""}
+            />
             Refresh
           </button>
         </div>
 
-        {/* Stats */}
+        {/* Main Stats */}
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
 
-          <Stat
-            icon={<ClipboardCheck />}
-            label="Pending"
-            value={stats.pending}
-          />
+          <Link
+            to="/staff/requests"
+            className="rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md"
+          >
+            <StatContent
+              icon={<ClipboardCheck />}
+              label="Pending"
+              value={stats.pending ?? 0}
+            />
+          </Link>
 
-          <Stat
-            icon={<FileCheck2 />}
-            label="Approved"
-            value={stats.approved}
-          />
+          <Link
+            to="/staff/requests"
+            className="rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md"
+          >
+            <StatContent
+              icon={<FileCheck2 />}
+              label="Approved"
+              value={stats.approved ?? 0}
+            />
+          </Link>
 
-          <Stat
-            icon={<ShieldCheck />}
-            label="Credentials"
-            value={stats.credentials}
-          />
+          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+            <StatContent
+              icon={<ShieldCheck />}
+              label="Credentials"
+              value={stats.credentials ?? 0}
+            />
+          </div>
 
-          <Stat
-            icon={<Activity />}
-            label="System"
-            value={stats.system}
-          />
+          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+            <StatContent
+              icon={<Activity />}
+              label="System"
+              value={stats.system ?? "..."}
+            />
+          </div>
 
         </div>
 
-        {/* Secondary stats */}
+        {/* Secondary Stats */}
         <div className="mt-5 grid gap-5 sm:grid-cols-3">
 
           <MiniStat
             icon={<FileCheck2 />}
             label="Issued Requests"
-            value={stats.issued}
+            value={stats.issued ?? 0}
           />
 
           <MiniStat
             icon={<XCircle />}
             label="Rejected Requests"
-            value={stats.rejected}
+            value={stats.rejected ?? 0}
           />
 
           <MiniStat
             icon={<History />}
             label="Audit Events"
-            value={stats.auditEvents}
+            value={stats.auditEvents ?? 0}
           />
 
         </div>
 
-        {/* Request management */}
+        {/* Request Management */}
         <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-8">
 
-          <h2 className="text-xl font-bold text-slate-900">
-            Request management
-          </h2>
+          <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
 
-          <p className="mt-2 text-sm text-slate-500">
-            Review submitted student document requests and perform
-            approval, rejection and credential issuance actions.
-          </p>
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">
+                Request management
+              </h2>
 
-          <a
-            href="/staff/requests"
-            className="mt-6 inline-flex rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700"
-          >
-            View requests
-          </a>
+              <p className="mt-2 text-sm text-slate-500">
+                Review submitted student document requests and perform
+                approval, rejection and credential issuance actions.
+              </p>
+            </div>
+
+            <Link
+              to="/staff/requests"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
+            >
+              View requests
+              <ArrowRight size={17} />
+            </Link>
+
+          </div>
 
         </div>
 
-        {/* Audit logs */}
+        {/* Audit Trail */}
         <div className="mt-8 rounded-2xl border border-slate-200 bg-white">
 
           <div className="border-b border-slate-200 p-6">
+
             <div className="flex items-center gap-3">
+
               <div className="rounded-xl bg-indigo-50 p-2 text-indigo-600">
                 <History size={20} />
               </div>
@@ -170,7 +201,9 @@ export default function StaffDashboard() {
                   Recorded actions across the document issuance workflow.
                 </p>
               </div>
+
             </div>
+
           </div>
 
           {loading ? (
@@ -191,7 +224,8 @@ export default function StaffDashboard() {
                 >
 
                   <div>
-                    <div className="flex items-center gap-3">
+
+                    <div className="flex flex-wrap items-center gap-3">
 
                       <span className="rounded-lg bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">
                         {log.action}
@@ -204,8 +238,9 @@ export default function StaffDashboard() {
                     </div>
 
                     <p className="mt-2 text-sm text-slate-700">
-                      {log.details}
+                      {log.details || "Action recorded"}
                     </p>
+
                   </div>
 
                   <div className="text-left md:text-right">
@@ -219,7 +254,7 @@ export default function StaffDashboard() {
                     </p>
 
                     <p className="mt-1 text-xs text-slate-400">
-                      IP: {log.ipAddress}
+                      IP: {log.ipAddress || "N/A"}
                     </p>
 
                   </div>
@@ -237,10 +272,9 @@ export default function StaffDashboard() {
   );
 }
 
-function Stat({ icon, label, value }) {
+function StatContent({ icon, label, value }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5">
-
+    <>
       <div className="flex items-center justify-between">
 
         <div className="text-indigo-600">
@@ -256,8 +290,7 @@ function Stat({ icon, label, value }) {
       <p className="mt-4 text-sm font-medium text-slate-600">
         {label}
       </p>
-
-    </div>
+    </>
   );
 }
 
