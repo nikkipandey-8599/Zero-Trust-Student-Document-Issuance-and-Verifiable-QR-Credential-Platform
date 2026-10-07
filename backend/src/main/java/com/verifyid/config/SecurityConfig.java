@@ -2,11 +2,19 @@ package com.verifyid.config;
 
 import com.verifyid.security.JwtAuthenticationFilter;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import org.springframework.http.HttpMethod;
+
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -22,7 +30,12 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    @Value("${cors.allowed-origin:http://localhost:5173}")
+    private String allowedOrigin;
+
+    public SecurityConfig(
+            JwtAuthenticationFilter jwtAuthenticationFilter
+    ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
@@ -35,7 +48,9 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
 
             .cors(cors ->
-                cors.configurationSource(corsConfigurationSource())
+                cors.configurationSource(
+                    corsConfigurationSource()
+                )
             )
 
             .sessionManagement(session ->
@@ -46,7 +61,10 @@ public class SecurityConfig {
 
             .authorizeHttpRequests(auth -> auth
 
+                // ===============================
                 // Public endpoints
+                // ===============================
+
                 .requestMatchers(
                     "/api/health",
                     "/api/auth/**",
@@ -57,7 +75,22 @@ public class SecurityConfig {
                     "/v3/api-docs/**"
                 ).permitAll()
 
-                // Staff-only operations
+                // ===============================
+                // Credential revocation
+                // ===============================
+
+                .requestMatchers(
+                    HttpMethod.POST,
+                    "/api/credentials/*/revoke"
+                ).hasAnyAuthority(
+                    "ROLE_STAFF",
+                    "ROLE_ADMIN"
+                )
+
+                // ===============================
+                // Staff / Admin operations
+                // ===============================
+
                 .requestMatchers(
                     "/api/staff/**"
                 ).hasAnyAuthority(
@@ -65,18 +98,31 @@ public class SecurityConfig {
                     "ROLE_ADMIN"
                 )
 
+                // ===============================
                 // Admin-only operations
+                // ===============================
+
                 .requestMatchers(
                     "/api/admin/**"
-                ).hasAuthority("ROLE_ADMIN")
+                ).hasAuthority(
+                    "ROLE_ADMIN"
+                )
 
+                // ===============================
                 // Student-only operations
+                // ===============================
+
                 .requestMatchers(
                     "/api/student/**",
                     "/api/requests/student/**"
-                ).hasAuthority("ROLE_STUDENT")
+                ).hasAuthority(
+                    "ROLE_STUDENT"
+                )
 
-                // Staff/admin pending-request endpoint
+                // ===============================
+                // Staff/Admin pending requests
+                // ===============================
+
                 .requestMatchers(
                     "/api/requests/pending"
                 ).hasAnyAuthority(
@@ -84,7 +130,10 @@ public class SecurityConfig {
                     "ROLE_ADMIN"
                 )
 
-                // Everything else requires authentication
+                // ===============================
+                // Everything else
+                // ===============================
+
                 .anyRequest().authenticated()
             )
 
@@ -97,43 +146,44 @@ public class SecurityConfig {
     }
 
     @Bean
-    public org.springframework.security.crypto.password.PasswordEncoder passwordEncoder() {
-        return new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
+    public PasswordEncoder passwordEncoder() {
+
+        return new BCryptPasswordEncoder();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
         CorsConfiguration configuration =
-            new CorsConfiguration();
+                new CorsConfiguration();
 
         configuration.setAllowedOrigins(
-            List.of("http://localhost:5173")
+                List.of(allowedOrigin)
         );
 
         configuration.setAllowedMethods(
-            List.of(
-                "GET",
-                "POST",
-                "PUT",
-                "PATCH",
-                "DELETE",
-                "OPTIONS"
-            )
+                List.of(
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "PATCH",
+                    "DELETE",
+                    "OPTIONS"
+                )
         );
 
         configuration.setAllowedHeaders(
-            List.of("*")
+                List.of("*")
         );
 
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source =
-            new UrlBasedCorsConfigurationSource();
+                new UrlBasedCorsConfigurationSource();
 
         source.registerCorsConfiguration(
-            "/**",
-            configuration
+                "/**",
+                configuration
         );
 
         return source;
