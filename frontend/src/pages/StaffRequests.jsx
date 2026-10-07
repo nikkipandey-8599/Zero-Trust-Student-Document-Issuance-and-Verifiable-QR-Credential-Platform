@@ -9,7 +9,7 @@ import {
   ShieldCheck,
   XCircle,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import Navbar from "../components/Navbar";
 
@@ -41,6 +41,7 @@ const statusConfig = {
 };
 
 export default function StaffRequests() {
+  const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
 
   const [loading, setLoading] = useState(true);
@@ -183,8 +184,7 @@ export default function StaffRequests() {
       const credential = response.data;
 
       if (credential?.credentialId) {
-        window.location.href =
-          `/credential/${credential.credentialId}`;
+        navigate(`/credential/${credential.credentialId}`);
         return;
       }
 
