@@ -55,13 +55,18 @@ public class DataInitializer {
             // STAFF ACCOUNT
             // -----------------------------
 
-            if (userRepository.findByEmail("staff@verifyid.local").isEmpty()) {
+            String staffEmail = System.getenv()
+        .getOrDefault("VERIFYID_STAFF_EMAIL", "staff@verifyid.local");
+String staffPassword = System.getenv()
+        .getOrDefault("VERIFYID_STAFF_PASSWORD", "Staff@12345");
+
+if (userRepository.findByEmail(staffEmail).isEmpty()) {
 
                 User staff = new User();
 
                 staff.setFullName("VerifyID Staff");
-                staff.setEmail("staff@verifyid.local");
-                staff.setPassword(passwordEncoder.encode("Staff@12345"));
+                staff.setEmail(staffEmail);
+staff.setPassword(passwordEncoder.encode(staffPassword));
                 staff.setRole(Role.STAFF);
                 staff.setStatus(UserStatus.ACTIVE);
 
