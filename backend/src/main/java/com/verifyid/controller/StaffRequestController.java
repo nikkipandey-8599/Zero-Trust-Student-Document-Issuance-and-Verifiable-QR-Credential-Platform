@@ -6,8 +6,10 @@ import com.verifyid.repository.DocumentRequestRepository;
 import com.verifyid.service.CredentialService;
 import com.verifyid.service.AuditLogService;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -58,6 +60,19 @@ public class StaffRequestController {
                         new RuntimeException("Request not found")
                 );
 
+        /*
+         * A request can only be approved while it is waiting
+         * for staff review.
+         */
+        if (request.getStatus() != RequestStatus.SUBMITTED
+                && request.getStatus() != RequestStatus.UNDER_REVIEW) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Only submitted or under-review requests can be approved"
+            );
+        }
+
         request.setStatus(RequestStatus.APPROVED);
 
         DocumentRequest saved = requestRepository.save(request);
@@ -87,6 +102,22 @@ public class StaffRequestController {
                 .orElseThrow(() ->
                         new RuntimeException("Request not found")
                 );
+
+        /*
+         * A request can only be rejected while it is waiting
+         * for staff review.
+         *
+         * Once approved, generated, issued or revoked,
+         * it cannot be changed to REJECTED.
+         */
+        if (request.getStatus() != RequestStatus.SUBMITTED
+                && request.getStatus() != RequestStatus.UNDER_REVIEW) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "This request can no longer be rejected"
+            );
+        }
 
         request.setStatus(RequestStatus.REJECTED);
         request.setRejectionReason(reason);

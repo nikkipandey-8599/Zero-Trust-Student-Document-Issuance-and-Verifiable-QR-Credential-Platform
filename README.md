@@ -152,10 +152,11 @@ The app is at `http://localhost:5173`. It calls `http://localhost:8080/api` unle
 ### Docker Compose
 
 ```bash
+cp .env.example .env      # then set DB_PASSWORD and JWT_SECRET
 docker compose up --build
 ```
 
-This starts PostgreSQL, the backend on port 8080 and the frontend (nginx) on port 5173. The compose file contains development-only passwords; do not reuse it as-is in production.
+This starts PostgreSQL (not published to the host), the backend on port 8080 and the frontend (nginx) on port 5173. The RSA keys and database live in named volumes, so they survive restarts and rebuilds.
 
 ## Configuration
 
@@ -167,6 +168,9 @@ This starts PostgreSQL, the backend on port 8080 and the frontend (nginx) on por
 | `FRONTEND_URL` | backend | Address encoded in QR codes; must be the public frontend URL |
 | `CORS_ALLOWED_ORIGIN` | backend | Allowed browser origin; must match the frontend URL |
 | `VITE_API_URL` | frontend (build time) | Public backend address ending in `/api` |
+| `VERIFYID_STAFF_EMAIL`, `VERIFYID_STAFF_PASSWORD` | backend | Replace the demo staff account (optional) |
+| `VERIFYID_KEY_DIR` | backend | Folder for the RSA keys (default `keys`) |
+| `VERIFYID_PRIVATE_KEY`, `VERIFYID_PUBLIC_KEY` | backend | Supply the keys as text instead of files (optional) |
 
 Secrets, `.env` files and the `keys/` directory are excluded from Git.
 
@@ -174,8 +178,8 @@ Secrets, `.env` files and the `keys/` directory are excluded from Git.
 
 - The frontend is deployed on Vercel (`frontend/vercel.json` rewrites all routes to `index.html`). Set `VITE_API_URL` in the Vercel project settings, then redeploy, because Vite embeds it at build time.
 - Host the backend and PostgreSQL anywhere that can run Java 21 or Docker. Set `FRONTEND_URL` and `CORS_ALLOWED_ORIGIN` to the Vercel address, otherwise QR codes point to localhost and browsers block API calls.
-- **Keep the signing keys.** On first start the backend generates an RSA key pair in a `keys/` folder (`/app/keys` in Docker). Put that folder on a persistent volume and back it up. If the keys are lost, every credential issued earlier will report `SIGNATURE_INVALID`.
-- A demo staff account (`staff@verifyid.local`) is created at startup by `DataInitializer`. Change its password, or remove the seeding, before any real use.
+- **Keep the signing keys.** On first start the backend generates an RSA key pair in the `keys/` folder (`/app/keys` in Docker, or `VERIFYID_KEY_DIR`). Put that folder on a persistent volume and back it up. On hosts without a persistent disk, copy the two key files' text into `VERIFYID_PRIVATE_KEY` and `VERIFYID_PUBLIC_KEY`. If the keys are lost, every credential issued earlier will report `SIGNATURE_INVALID`.
+- A demo staff account (`staff@verifyid.local`) is created at first start. Set `VERIFYID_STAFF_EMAIL` and `VERIFYID_STAFF_PASSWORD` before any real use.
 - Use HTTPS in front of the backend.
 
 ## Testing and evidence
@@ -188,16 +192,15 @@ Secrets, `.env` files and the `keys/` directory are excluded from Git.
 
 1. Device posture, risk-adaptive policy and continuous session re-evaluation are not implemented.
 2. Automated test coverage is minimal; business rules were verified manually.
-3. Approve and reject do not check a request's current status, so a decided request could be moved to another state by staff.
-4. The RSA private key is a file on disk, not in a key vault, and there is no key rotation.
-5. The credential PDF comes from a small custom PDF writer with a plain layout.
-6. No rate limiting on login, and Swagger UI is public.
-7. `spring.jpa.hibernate.ddl-auto=update` is used instead of database migrations.
-8. Only synthetic demonstration data has been used; there is no student information system integration.
+3. The RSA private key is a file on disk, not in a key vault, and there is no key rotation.
+4. The credential PDF comes from a small custom PDF writer with a plain layout.
+5. No rate limiting on login, and Swagger UI is public.
+6. `spring.jpa.hibernate.ddl-auto=update` is used instead of database migrations.
+7. Only synthetic demonstration data has been used; there is no student information system integration.
 
 ## Future work
 
-Device-posture and risk-based policy decisions with step-up authentication, status guards on workflow actions, broader unit and integration tests, key storage in a vault or HSM, rate limiting, database migrations, notifications, and integration with the college student information system.
+Device-posture and risk-based policy decisions with step-up authentication, broader unit and integration tests, key storage in a vault or HSM, rate limiting, database migrations, notifications, and integration with the college student information system.
 
 ## Author
 

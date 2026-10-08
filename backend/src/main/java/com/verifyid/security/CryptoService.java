@@ -26,7 +26,9 @@ public class CryptoService {
     private final PublicKey publicKey;
 
     private static final Path KEY_DIRECTORY =
-            Paths.get("keys");
+            Paths.get(
+                    System.getenv().getOrDefault("VERIFYID_KEY_DIR", "keys")
+            );
 
     private static final Path PRIVATE_KEY_FILE =
             KEY_DIRECTORY.resolve("verifyid-private.key");
@@ -36,9 +38,37 @@ public class CryptoService {
 
     public CryptoService() {
         try {
-            Files.createDirectories(KEY_DIRECTORY);
 
-            if (Files.exists(PRIVATE_KEY_FILE)
+            String envPrivate = System.getenv("VERIFYID_PRIVATE_KEY");
+            String envPublic = System.getenv("VERIFYID_PUBLIC_KEY");
+
+            /*
+             * Priority 1:
+             * Load RSA keys from environment variables.
+             *
+             * This is useful for production deployments where
+             * the filesystem may not be persistent.
+             */
+            if (envPrivate != null && !envPrivate.isBlank()
+                    && envPublic != null && !envPublic.isBlank()) {
+
+                this.privateKey = parsePrivateKey(
+                        Base64.getDecoder().decode(envPrivate.trim())
+                );
+
+                this.publicKey = parsePublicKey(
+                        Base64.getDecoder().decode(envPublic.trim())
+                );
+
+                System.out.println(
+                        "VerifyID RSA keys loaded from environment variables."
+                );
+
+            /*
+             * Priority 2:
+             * Load existing keys from persistent storage.
+             */
+            } else if (Files.exists(PRIVATE_KEY_FILE)
                     && Files.exists(PUBLIC_KEY_FILE)) {
 
                 this.privateKey = loadPrivateKey();
@@ -48,12 +78,18 @@ public class CryptoService {
                         "VerifyID RSA keys loaded from persistent storage."
                 );
 
+            /*
+             * Priority 3:
+             * Generate a new RSA key pair if no existing keys are available.
+             */
             } else {
 
                 KeyPair keyPair = generateKeyPair();
 
                 this.privateKey = keyPair.getPrivate();
                 this.publicKey = keyPair.getPublic();
+
+                Files.createDirectories(KEY_DIRECTORY);
 
                 saveKeys(keyPair);
 
@@ -63,6 +99,7 @@ public class CryptoService {
             }
 
         } catch (Exception e) {
+
             throw new RuntimeException(
                     "Unable to initialize VerifyID cryptographic keys",
                     e
@@ -170,13 +207,7 @@ public class CryptoService {
                         )
                 );
 
-        PKCS8EncodedKeySpec keySpec =
-                new PKCS8EncodedKeySpec(encoded);
-
-        KeyFactory keyFactory =
-                KeyFactory.getInstance(ALGORITHM);
-
-        return keyFactory.generatePrivate(keySpec);
+        return parsePrivateKey(encoded);
     }
 
     private PublicKey loadPublicKey()
@@ -189,12 +220,24 @@ public class CryptoService {
                         )
                 );
 
-        X509EncodedKeySpec keySpec =
-                new X509EncodedKeySpec(encoded);
+        return parsePublicKey(encoded);
+    }
 
-        KeyFactory keyFactory =
-                KeyFactory.getInstance(ALGORITHM);
+    private PrivateKey parsePrivateKey(byte[] encoded)
+            throws Exception {
 
-        return keyFactory.generatePublic(keySpec);
+        return KeyFactory.getInstance(ALGORITHM)
+                .generatePrivate(
+                        new PKCS8EncodedKeySpec(encoded)
+                );
+    }
+
+    private PublicKey parsePublicKey(byte[] encoded)
+            throws Exception {
+
+        return KeyFactory.getInstance(ALGORITHM)
+                .generatePublic(
+                        new X509EncodedKeySpec(encoded)
+                );
     }
 }
