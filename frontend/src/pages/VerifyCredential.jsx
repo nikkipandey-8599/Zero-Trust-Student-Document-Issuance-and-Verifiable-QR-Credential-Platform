@@ -91,6 +91,11 @@ export default function VerifyCredential() {
       credential?.status === "VALID"
     );
 
+  const isNotFound =
+    credential?.status === "CREDENTIAL_NOT_FOUND";
+
+  const resultIsError = isRevoked || isNotFound;
+
   return (
     <div className="min-h-screen bg-[#F8F5EF]">
       <Navbar />
@@ -221,7 +226,7 @@ export default function VerifyCredential() {
             {/* Result header */}
             <div
               className={
-                isRevoked
+                resultIsError
                   ? "border-b border-red-200 bg-red-50 px-6 py-6 sm:px-7"
                   : "border-b border-emerald-200 bg-emerald-50 px-6 py-6 sm:px-7"
               }
@@ -231,12 +236,12 @@ export default function VerifyCredential() {
 
                 <div
                   className={
-                    isRevoked
+                    resultIsError
                       ? "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600"
                       : "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600"
                   }
                 >
-                  {isRevoked ? (
+                  {resultIsError ? (
                     <XCircle size={25} />
                   ) : (
                     <CheckCircle2 size={25} />
@@ -247,7 +252,7 @@ export default function VerifyCredential() {
 
                   <p
                     className={
-                      isRevoked
+                      resultIsError
                         ? "text-xs font-bold uppercase tracking-[0.15em] text-red-700"
                         : "text-xs font-bold uppercase tracking-[0.15em] text-emerald-700"
                     }
@@ -257,28 +262,32 @@ export default function VerifyCredential() {
 
                   <h2
                     className={
-                      isRevoked
+                      resultIsError
                         ? "mt-1 text-2xl font-bold text-red-900"
                         : "mt-1 text-2xl font-bold text-emerald-900"
                     }
                   >
                     {isRevoked
                       ? "Credential revoked"
-                      : isValid
-                        ? "Credential verified"
-                        : "Credential found"}
+                      : isNotFound
+                        ? "Credential not found"
+                        : isValid
+                          ? "Credential verified"
+                          : "Credential found"}
                   </h2>
 
                   <p
                     className={
-                      isRevoked
+                      resultIsError
                         ? "mt-1 text-sm text-red-700"
                         : "mt-1 text-sm text-emerald-700"
                     }
                   >
                     {isRevoked
                       ? "This credential is no longer considered valid."
-                      : "The credential was successfully verified by VerifyID."}
+                      : isNotFound
+                        ? "No credential exists with this ID. Please check the credential ID and try again."
+                        : "The credential was successfully verified by VerifyID."}
                   </p>
 
                 </div>

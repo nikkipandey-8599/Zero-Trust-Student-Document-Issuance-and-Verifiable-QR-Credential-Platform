@@ -14,9 +14,15 @@ import {
 import { Link, useParams } from "react-router-dom";
 import api from "../services/api";
 import Navbar from "../components/Navbar";
+import { useAuth } from "../context/AuthContext";
 
 export default function Credential() {
   const { credentialId } = useParams();
+  const { user } = useAuth();
+
+  const canRevoke =
+    user?.role === "STAFF" ||
+    user?.role === "ADMIN";
 
   const [credential, setCredential] = useState(null);
   const [qrCode, setQrCode] = useState("");
@@ -492,7 +498,7 @@ export default function Credential() {
                     : "Download credential PDF"}
                 </button>
 
-                {!isRevoked && (
+                {canRevoke && !isRevoked && (
                   <button
                     type="button"
                     onClick={revokeCredential}

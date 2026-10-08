@@ -88,7 +88,34 @@ export default function StudentDashboard() {
           return dateB - dateA;
         });
 
-        setRequests(sorted);
+        const enriched = await Promise.all(
+          sorted.map(async (request) => {
+            if (
+              !["ISSUED", "DOCUMENT_GENERATED"].includes(request.status)
+            ) {
+              return request;
+            }
+
+            try {
+              const credentialResponse = await api.get(
+                `/credentials/request/${request.id}`
+              );
+
+              return {
+                ...request,
+                credential: credentialResponse.data,
+              };
+            } catch (credentialError) {
+              console.error(
+                `Failed to load credential for request ${request.id}:`,
+                credentialError
+              );
+              return request;
+            }
+          })
+        );
+
+        setRequests(enriched);
       } catch (error) {
         console.error("Failed to load student requests:", error);
         setRequests([]);

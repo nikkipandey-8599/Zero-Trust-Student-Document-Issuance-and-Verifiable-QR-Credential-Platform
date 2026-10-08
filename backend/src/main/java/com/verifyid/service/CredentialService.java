@@ -7,17 +7,21 @@ import com.verifyid.entity.RequestStatus;
 import com.verifyid.repository.CredentialRepository;
 import com.verifyid.repository.DocumentRequestRepository;
 import com.verifyid.security.CryptoService;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.HexFormat;
 import java.util.UUID;
 
 @Service
 public class CredentialService {
+
+    private static final ZoneId INDIA_ZONE =
+            ZoneId.of("Asia/Kolkata");
 
     private final CredentialRepository credentialRepository;
     private final DocumentRequestRepository documentRequestRepository;
@@ -92,7 +96,7 @@ public class CredentialService {
                         .toUpperCase();
 
         // ==========================================
-        // 5. Create credential object
+        // 5. Create credential
         // ==========================================
 
         Credential credential = new Credential();
@@ -101,13 +105,20 @@ public class CredentialService {
         credential.setRequest(request);
         credential.setStatus(CredentialStatus.ACTIVE);
 
-        credential.setIssuedAt(
-                LocalDateTime.now()
-        );
+        /*
+         * Always create credential timestamps in
+         * Indian Standard Time so that the generated
+         * credential and frontend display the same
+         * time.
+         */
+        LocalDateTime issuedAt =
+                LocalDateTime.now(INDIA_ZONE);
 
-        credential.setExpiresAt(
-                LocalDateTime.now().plusYears(1)
-        );
+        LocalDateTime expiresAt =
+                issuedAt.plusYears(1);
+
+        credential.setIssuedAt(issuedAt);
+        credential.setExpiresAt(expiresAt);
 
         // ==========================================
         // 6. Generate PDF
@@ -131,7 +142,9 @@ public class CredentialService {
         // ==========================================
 
         String dataToSign =
-                credentialId + ":" + documentHash;
+                credentialId +
+                ":" +
+                documentHash;
 
         String signature =
                 cryptoService.sign(dataToSign);
@@ -167,9 +180,10 @@ public class CredentialService {
                 "CREDENTIAL_ISSUED",
                 "CREDENTIAL",
                 savedCredential.getId(),
-                "Credential " + savedCredential.getCredentialId()
-                        + " issued for document request "
-                        + request.getId()
+                "Credential " +
+                        savedCredential.getCredentialId() +
+                        " issued for document request " +
+                        request.getId()
         );
 
         // ==========================================

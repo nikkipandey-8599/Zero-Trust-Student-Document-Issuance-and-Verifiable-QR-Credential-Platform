@@ -309,7 +309,10 @@ function StatCard({
   };
 
   return (
-    <div className="rounded-2xl border border-[#E0D8E4] bg-white p-5 shadow-sm">
+    <Link
+      to="/staff/requests"
+      className="block rounded-2xl border border-[#E0D8E4] bg-white p-5 shadow-sm"
+    >
 
       <div className="flex items-start justify-between gap-4">
 
@@ -335,7 +338,7 @@ function StatCard({
         {description}
       </p>
 
-    </div>
+    </Link>
   );
 }
 
@@ -443,7 +446,7 @@ function AuditRow({ log }) {
 
           {log?.ipAddress && (
             <p className="mt-1 text-[11px] text-[#817A85]">
-              IP: {log.ipAddress}
+              IP: {log?.ipAddress}
             </p>
           )}
 
